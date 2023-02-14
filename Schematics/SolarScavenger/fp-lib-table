@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name "Espressif")(type "KiCad")(uri "E:/LaboratorioGluon/Proyectos/@Common/KicadLibs/kicad-libraries/footprints/Espressif.pretty")(options "")(descr ""))
+  (lib (name "microSD")(type "KiCad")(uri "E:/LaboratorioGluon/Proyectos/@Common/KicadLibs/footprints/microSD")(options "")(descr ""))
 )
