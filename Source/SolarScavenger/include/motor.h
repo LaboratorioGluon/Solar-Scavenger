@@ -17,8 +17,9 @@ public:
     void setPowerPercentage(uint32_t power);
 private:
 
-    uint8_t isInitialized;
+    void setMicrosecondsUp(uint32_t miliseconds);
 
+    uint8_t isInitialized;
     gpio_num_t pinEsc;
 
 };

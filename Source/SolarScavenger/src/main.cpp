@@ -24,6 +24,23 @@ void app_main(void)
 {
   printf("Start\n");
   motor.Init();
+  uint32_t powerLevel = 0;
+  int8_t direction = 1; // o -1 para atras
+  while (true)
+  {
+    powerLevel += direction;
+    if (powerLevel >= 100)
+    {
+      direction = -1;
+    }
+    else if (powerLevel <= 0)
+    {
+      direction = 1;
+    }
+    motor.setPowerPercentage(powerLevel);
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+  return;
 
   mcpwm_gpio_initialize(GPIO_PWM0A_OUT);
 
