@@ -10,7 +10,7 @@
  */
 class Motor{
 public:
-    Motor(gpio_num_t pinEsc);
+    Motor(gpio_num_t _pinEsc);
 
     void Init();
 
@@ -18,6 +18,8 @@ public:
 private:
 
     uint8_t isInitialized;
+
+    gpio_num_t pinEsc;
 
 };
 

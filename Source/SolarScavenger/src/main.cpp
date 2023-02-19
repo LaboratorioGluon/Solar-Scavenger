@@ -12,11 +12,18 @@
 #include "pwm.h"
 #include "simul.h"
 
+#include "motor.h"
+
 #define GPIO_PWM0A_OUT 21   //Set GPIO 21 as PWM0A
+
+extern "C" void app_main(void);
+
+Motor motor(GPIO_NUM_21);
 
 void app_main(void)
 {
   printf("Start\n");
+  motor.Init();
 
   mcpwm_gpio_initialize(GPIO_PWM0A_OUT);
 
