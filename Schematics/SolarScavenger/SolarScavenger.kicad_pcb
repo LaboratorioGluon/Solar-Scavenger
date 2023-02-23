@@ -5814,7 +5814,7 @@
 
   (footprint "GluonLib:LogoGluon_12mm" (layer "F.Cu")
     (tstamp ef612a5d-6603-4446-b259-b2ded0baa189)
-    (at 119.888 80.264)
+    (at 119.761 77.851)
     (attr through_hole)
     (fp_text reference "G***" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.524 1.524) (thickness 0.3)))
@@ -7094,6 +7094,8 @@
       (stroke (width 0) (type solid)) (fill solid) (layer "F.SilkS") (tstamp 1dfb8c21-7f27-438c-af95-26e6498d1713))
   )
 
+  (gr_line (start 123.825 67.437) (end 110.871 67.437)
+    (stroke (width 0.15) (type default)) (layer "B.SilkS") (tstamp c0980c50-6955-4ad8-b04b-43aa68450c2d))
   (gr_line (start 180 69.492) (end 180 33)
     (stroke (width 0.1) (type default)) (layer "Edge.Cuts") (tstamp 0fbff6d8-cf34-4928-90d5-2f02225de017))
   (gr_line (start 100 33) (end 100 70)
@@ -7114,7 +7116,10 @@
     (stroke (width 0.1) (type default)) (layer "Edge.Cuts") (tstamp 9b143fdb-dfcc-4495-a6d5-f234af1a67d3))
   (gr_line (start 130.5 39.5) (end 150 39.5)
     (stroke (width 0.1) (type default)) (layer "Edge.Cuts") (tstamp f8a27590-801e-483f-b63b-70e9982c47ff))
-  (gr_text "Solar Scavenger v1.0\n@LabGluon\n@Prediktor\n" (at 110.744 74.168) (layer "F.SilkS") (tstamp 105c518f-7eba-4603-b496-4c45085af901)
+  (gr_text "Gracias a:\n\n@spuertes\n@carlosbetdev\n@araba_st\n@kukudrulu\n@fateuki1\n@andygm_\n@un_bizco" (at 123.317 79.375) (layer "B.SilkS") (tstamp 76178771-8a71-4582-bb2f-d1995a69168e)
+    (effects (font (size 1 1) (thickness 0.15)) (justify left bottom mirror))
+  )
+  (gr_text "Solar Scavenger v1.0\n@LabGluon\n@Prediktor\n" (at 109.601 71.882) (layer "F.SilkS") (tstamp 105c518f-7eba-4603-b496-4c45085af901)
     (effects (font (size 1 1) (thickness 0.15)) (justify left bottom))
   )
 
@@ -7182,6 +7187,7 @@
   (via (at 142.24 43.688) (size 0.8) (drill 0.4) (layers "F.Cu" "B.Cu") (free) (net 6) (tstamp 8f35b431-4651-40e3-995e-fe552ab2b83c))
   (via (at 136.398 43.688) (size 0.8) (drill 0.4) (layers "F.Cu" "B.Cu") (free) (net 6) (tstamp ba924b1d-8e5a-48c8-8a9f-98517bfc23ce))
   (via (at 139.954 53.086) (size 0.8) (drill 0.4) (layers "F.Cu" "B.Cu") (free) (net 6) (tstamp ceadd33f-2dec-493f-a47a-2792ee911dfe))
+  (via (at 153.543 64.389) (size 0.8) (drill 0.4) (layers "F.Cu" "B.Cu") (free) (net 6) (tstamp dab40bf8-c06b-4691-b01e-417862abaf3b))
   (segment (start 130 86.066) (end 149.92 86.066) (width 2) (layer "B.Cu") (net 6) (tstamp 4770c401-8288-4bc5-a3ab-3067ab90f2d3))
   (segment (start 149.272 86.066) (end 149.352 86.146) (width 2) (layer "B.Cu") (net 6) (tstamp 9c27dee8-fd80-43c5-9310-61356bd696fa))
   (segment (start 149.92 86.066) (end 150 86.146) (width 2) (layer "B.Cu") (net 6) (tstamp f12a1f9a-fddf-4281-925b-11938714d7f1))

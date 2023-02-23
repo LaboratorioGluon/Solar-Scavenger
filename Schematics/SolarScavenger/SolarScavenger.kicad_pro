@@ -450,7 +450,9 @@
     "meta": {
       "version": 3
     },
-    "net_colors": null,
+    "net_colors": {
+      "MOTOR_SUPPLY_N": "rgb(105, 255, 67)"
+    },
     "netclass_assignments": null,
     "netclass_patterns": []
   },
