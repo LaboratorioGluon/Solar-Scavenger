@@ -1,0 +1,7 @@
+#ifndef __SECRET_H__
+#define __SECRET_H__
+
+#define MAC_DST 0x34,0x86,0x5d, 0xfd, 0x85, 0x8c
+
+
+#endif //__SECRET_H__

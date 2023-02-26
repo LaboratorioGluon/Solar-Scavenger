@@ -4,6 +4,8 @@
 #include "mppt.h"
 #include "simul.h"
 #include "motor.h"
+#include "comms.h"
+#include "secret.h"
 
 #define SIMUL_ON
 
@@ -52,8 +54,33 @@ void Sail()
 
 }
 
+Comms comms;
+
 void app_main(void)
 {
+    uint8_t mac[6]= {MAC_DST};
+    
+    comms.Init();
+    //comms.testGetAddr();
+
+#ifdef EMISOR
+    printf("Starting as EMISOR\n");
+    comms.addReceiver(mac);
+    uint8_t data[1] = {0x00};
+    while(true)
+    {
+        comms.sendData(data, 1);
+        data[0]++;
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+#else
+    printf("Starting as RECEPTOR\n");
+    comms.activateReception();
+    while(true)
+    {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+#endif
 
     Init();
     Wait();
