@@ -1,5 +1,5 @@
-#ifndef __MOTOR_H__
-#define __MOTOR_H__
+#ifndef __RCPWM_H__
+#define __RCPWM_H__
 
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -8,11 +8,11 @@
  * @brief This class controls the ESC which controls the Brushless motor.
  * 
  */
-class Motor{
+class RcPwm{
 public:
-    Motor(gpio_num_t _pinEsc);
+    RcPwm(ledc_channel_t _channel, gpio_num_t _pinEsc);
 
-    void Init();
+    void Init(uint32_t initMs = 1000);
 
     void setPowerPercentage(uint32_t power);
 private:
@@ -21,8 +21,9 @@ private:
 
     uint8_t isInitialized;
     gpio_num_t pinEsc;
+    ledc_channel_t channelLedC;
 
 };
 
 
-#endif //__MOTOR_H__
+#endif //__RCPWM_H__

@@ -5,13 +5,17 @@
 
 class AdcReader{
 public:
-    AdcReader(gpio_num_t _pinAdc);
+    AdcReader(uint32_t _adcNumber,adc_channel_t _channelAdc);
 
     void Init();
-    uint16_t ReadValue();
+    uint32_t ReadValue(uint32_t samples = 5);
+
+    static bool calibrateAdc();
 
 private:
-    gpio_num_t pinAdc;
+
+    adc_channel_t channelAdc;
+    uint32_t adcNumber;
 
 };
 

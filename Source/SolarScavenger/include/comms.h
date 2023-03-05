@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include "esp_err.h"
 
+struct commData
+{
+    uint32_t rudder; // [0-1000]: 0 - Babor, 500 - Centro,  1000 - Estribor
+    uint32_t throttle; // [ 0 - 1000]: 0 - Parado, 1000-  A toa' leche
+};
+
+extern struct commData gRecvCommData;
+
 class Comms
 {
 public:
@@ -12,7 +20,8 @@ public:
     esp_err_t Init();
     void addReceiver(uint8_t receiver_mac[6]);
 
-    void sendData(uint8_t *data, uint32_t data_len);
+    void sendCommData(struct commData data);
+    void sendRawData(uint8_t *data, uint32_t data_len);
 
     void activateReception();
 

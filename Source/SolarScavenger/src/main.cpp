@@ -3,17 +3,40 @@
 #include "freertos/task.h"
 #include "mppt.h"
 #include "simul.h"
-#include "motor.h"
+#include "rcpwm.h"
 #include "comms.h"
 #include "secret.h"
+#include "adc.h"
+#include "esp_log.h"
 
 #define SIMUL_ON
 
 extern "C" void app_main(void);
 
-Motor motor(GPIO_NUM_21);
-Mppt mppt;
+// Move to Config.h
+#define CALIBRATE_MOTOR 1
+
+
+static const char* TAG = "Main";
+
 Simul simul;
+Comms comms;
+
+#ifdef EMISOR
+
+    AdcReader Throttle(1, ADC_CHANNEL_3);
+    AdcReader Rudder(1, ADC_CHANNEL_0);
+
+#else // RECEPTOR
+    Mppt mppt;
+    RcPwm motor(LEDC_CHANNEL_1, GPIO_NUM_17);
+    RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16);
+
+#endif 
+
+
+
+
 
 void Restart()
 {
@@ -36,7 +59,7 @@ void Error()
 
 void Init()
 {
-    motor.Init();
+    //motor.Init();
 
     // Init ESP-NOW
     // GPIOs
@@ -54,34 +77,58 @@ void Sail()
 
 }
 
-Comms comms;
+
 
 void app_main(void)
 {
     uint8_t mac[6]= {MAC_DST};
     
     comms.Init();
+
     //comms.testGetAddr();
 
 #ifdef EMISOR
+
     printf("Starting as EMISOR\n");
+
+    Throttle.Init();
+    Rudder.Init();
+
     comms.addReceiver(mac);
     uint8_t data[1] = {0x00};
+    commData sendData;
+    
+
     while(true)
     {
-        comms.sendData(data, 1);
-        data[0]++;
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //comms.sendRawData(data, 1);
+        sendData.rudder = Rudder.ReadValue();
+        sendData.throttle = Throttle.ReadValue();
+        comms.sendCommData(sendData);
+        ESP_LOGE(TAG, "Sending values: %d, %d", sendData.rudder, sendData.throttle);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
     printf("Starting as RECEPTOR\n");
+
     comms.activateReception();
+    /*#if CALIBRATE_MOTOR
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        motor.Init(2000);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        motor.setPowerPercentage(0);
+    #endif */
+    motor.Init();
+    servo.Init();
+    
     while(true)
     {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        servo.setPowerPercentage(gRecvCommData.rudder/33);
+        motor.setPowerPercentage(gRecvCommData.throttle/33);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 #endif
-
+#if 0
     Init();
     Wait();
     Sail();
@@ -135,5 +182,6 @@ void app_main(void)
             set_motor_duty_cycle(mppt.mpptPO(v, i));
     }
 
+#endif
 #endif
 }
