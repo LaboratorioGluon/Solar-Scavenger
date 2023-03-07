@@ -1,7 +1,8 @@
 #ifndef __ADC_H__
 #define __ADC_H__
 
-#include <driver/adc.h>
+//#include <driver/adc.h>
+#include <esp_adc/adc_continuous.h>
 
 class AdcReader{
 public:

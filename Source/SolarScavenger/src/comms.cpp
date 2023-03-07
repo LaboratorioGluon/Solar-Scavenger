@@ -22,13 +22,11 @@ struct commData gRecvCommData = {0};
 // Reception Callback
 void receptionCallback(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
-    ESP_LOGE(TAG, "Nuevos datos recibidos %d > %d", data_len, data[0]);
+    ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
     memcpy(&gRecvCommData, data, sizeof(struct commData));
-    ESP_LOGE(TAG,"Datos recibidos en commData: rud: %d, thr: %d", gRecvCommData.rudder, gRecvCommData.throttle);
+    ESP_LOGE(TAG,"Datos recibidos en commData: rud: %lu, thr: %lu", gRecvCommData.rudder, gRecvCommData.throttle);    
 
-
-    
 }
 
 
@@ -118,8 +116,8 @@ void Comms::testGetAddr()
     Init();
 
     //esp_wifi_get_mac(WIFI_IF_STA,mac);
-    esp_read_mac(mac,ESP_MAC_WIFI_STA);
-    ESP_LOGE(TAG, "MAC: %d:%d:%d:%d:%d:%d\n",mac[0], mac[1], mac[2],mac[3],mac[4],mac[5]);
+    //esp_read_mac(mac,ESP_MAC_WIFI_STA);
+    //ESP_LOGE(TAG, "MAC: %d:%d:%d:%d:%d:%d\n",mac[0], mac[1], mac[2],mac[3],mac[4],mac[5]);
 
     while(true);
 }

@@ -15,6 +15,8 @@ public:
 
 private:
 
+    FILE *pFile;
+
     uint8_t isInitialized;
 };
 

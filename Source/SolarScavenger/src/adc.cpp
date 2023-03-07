@@ -49,7 +49,7 @@ uint32_t AdcReader::ReadValue(uint32_t samples)
     rawValue = sumValue / samples;
     
     uint32_t valueMv = (3300.0f/(1.0f*(1<<12))) * rawValue;
-    ESP_LOGE(TAG, "ADC raw: %d -> %d mV.", rawValue, valueMv);
+    ESP_LOGE(TAG, "ADC raw: %lu -> %lu mV.", rawValue, valueMv);
 
     return valueMv;
 }

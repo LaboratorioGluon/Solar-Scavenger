@@ -8,6 +8,7 @@
 #include "secret.h"
 #include "adc.h"
 #include "esp_log.h"
+#include "sd.h"
 
 #define SIMUL_ON
 
@@ -31,6 +32,8 @@ Comms comms;
     Mppt mppt;
     RcPwm motor(LEDC_CHANNEL_1, GPIO_NUM_17);
     RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16);
+
+    SdWritter sdCard;
 
 #endif 
 
@@ -105,7 +108,7 @@ void app_main(void)
         sendData.rudder = Rudder.ReadValue();
         sendData.throttle = Throttle.ReadValue();
         comms.sendCommData(sendData);
-        ESP_LOGE(TAG, "Sending values: %d, %d", sendData.rudder, sendData.throttle);
+        ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
@@ -118,6 +121,8 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(1000));
         motor.setPowerPercentage(0);
     #endif */
+
+    sdCard.Init();
     motor.Init();
     servo.Init();
     

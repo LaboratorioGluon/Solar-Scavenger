@@ -2680,6 +2680,11 @@
     (uuid ff570088-1fdd-4694-98d7-917335f09693)
   )
 
+  (text "Segun el ejemplo, hay que ponerlas de 10k\nhttps://github.com/espressif/esp-idf/blob/af805df3cb6117cc74f0875831fbab6446824453/examples/storage/sd_card/sdmmc/main/sd_card_example_main.c\n Linea 119"
+    (at 84.582 156.21 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid 6e131e5c-4d52-487a-a8a8-e251cef89f03)
+  )
   (text "Máx: 22V, 6A" (at 17.78 27.432 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 82ea50fa-50be-40ad-8307-6d7be947c8d2)
