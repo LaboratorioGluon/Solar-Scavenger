@@ -9,6 +9,7 @@
 #include "adc.h"
 #include "esp_log.h"
 #include "sd.h"
+#include "currentSensor.h"
 
 #define SIMUL_ON
 
@@ -34,6 +35,9 @@ Comms comms;
     RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16);
 
     SdWritter sdCard;
+
+    AdcReader LDR(1, ADC_CHANNEL_3);
+    CurrentSensor Ina(GPIO_NUM_22, GPIO_NUM_23, 0x45);
 
 #endif 
 
@@ -112,7 +116,7 @@ void app_main(void)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
-    printf("Starting as RECEPTOR\n");
+    printf("Starting as RECEPTOR1\n");
 
     comms.activateReception();
     /*#if CALIBRATE_MOTOR
@@ -122,15 +126,54 @@ void app_main(void)
         motor.setPowerPercentage(0);
     #endif */
 
-    sdCard.Init();
+    //sdCard.Init();
     motor.Init();
     servo.Init();
+    LDR.Init();
+    Ina.Init();
+
+    gpio_config_t leds;
+    leds.intr_type = GPIO_INTR_DISABLE;
+    leds.mode = GPIO_MODE_OUTPUT;
+    leds.pin_bit_mask = (1 << GPIO_NUM_5) | (1 << GPIO_NUM_27);
+    leds.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    leds.pull_up_en = GPIO_PULLUP_DISABLE;
     
+    gpio_config(&leds);
+    gpio_set_level(GPIO_NUM_5, 0);
+    gpio_set_level(GPIO_NUM_27, 0);
+
+    uint8_t ledValue = 0;
+    uint8_t nLedValue = 1;
+
+    uint32_t startvalue = LDR.ReadValue();
+    printf("Start value: %lu \n", startvalue);
+    uint32_t lastValue;
     while(true)
     {
-        servo.setPowerPercentage(gRecvCommData.rudder/33);
+        /*servo.setPowerPercentage(gRecvCommData.rudder/33);
         motor.setPowerPercentage(gRecvCommData.throttle/33);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);*/
+        /*gpio_set_level(GPIO_NUM_5,ledValue);
+        gpio_set_level(GPIO_NUM_27,nLedValue);
+        ledValue = ledValue?0:1;
+        nLedValue = nLedValue?0:1;*/
+
+        lastValue = LDR.ReadValue();
+        if ( lastValue > startvalue*2 )
+        {
+            gpio_set_level(GPIO_NUM_5  ,1);
+            gpio_set_level(GPIO_NUM_27 ,0);
+            servo.setPowerPercentage(0);
+        }
+        else
+        {
+            gpio_set_level(GPIO_NUM_5  ,0);
+            gpio_set_level(GPIO_NUM_27 ,1);
+            servo.setPowerPercentage(100);
+        }
+        Ina.readCurrentMa();
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 #endif
 #if 0
