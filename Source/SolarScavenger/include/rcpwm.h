@@ -10,7 +10,7 @@
  */
 class RcPwm{
 public:
-    RcPwm(ledc_channel_t _channel, gpio_num_t _pinEsc);
+    RcPwm(ledc_channel_t _channel, gpio_num_t _pinEsc, uint8_t _isInverted = false);
 
     void Init(uint32_t initMs = 1000);
 
@@ -18,6 +18,8 @@ public:
 private:
 
     void setMicrosecondsUp(uint32_t miliseconds);
+
+    uint8_t isInverted;
 
     uint8_t isInitialized;
     gpio_num_t pinEsc;

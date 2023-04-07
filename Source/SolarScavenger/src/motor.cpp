@@ -3,8 +3,8 @@
 #include "esp_log.h"
 static const char* TAG = "RcPWM";
 
-RcPwm::RcPwm(ledc_channel_t _channel,gpio_num_t _pinEsc)
-    :isInitialized(false), pinEsc(_pinEsc), channelLedC(_channel)
+RcPwm::RcPwm(ledc_channel_t _channel,gpio_num_t _pinEsc, uint8_t _isInverted)
+    :isInverted(_isInverted),isInitialized(false), pinEsc(_pinEsc), channelLedC(_channel)
 {
 
 }
@@ -40,6 +40,7 @@ void RcPwm::Init(uint32_t initMs)
     ledc_channel.gpio_num = pinEsc;
     ledc_channel.duty = 0;
     ledc_channel.hpoint = 0;
+    ledc_channel.flags.output_invert = isInverted;
 
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 

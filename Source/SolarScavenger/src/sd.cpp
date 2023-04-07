@@ -3,6 +3,7 @@
 #include "esp_vfs_fat.h"
 #include "driver/sdmmc_host.h"
 #include "esp_log.h"
+#include "esp_vfs.h"
 
 static const char *TAG = "SD";
 
@@ -28,16 +29,18 @@ void SdWritter::Init()
     sdmmc_card_t *card;
     const char mount_point[] = MOUNT_POINT;
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    host.max_freq_khz = SDMMC_FREQ_PROBING;
+    host.flags = SDMMC_HOST_FLAG_1BIT;
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
     slot_config.width = 1;
     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-    slot_config.gpio_cd = GPIO_NUM_33;
+    /*slot_config.gpio_cd = GPIO_NUM_33;*/
 
 
     /*gpio_pulldown_dis(GPIO_NUM_13);
     gpio_pullup_en(GPIO_NUM_13);*/
 
-    esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
+    //esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
     ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
@@ -57,6 +60,8 @@ void SdWritter::Init()
     sdmmc_card_print_info(stdout, card);
 
     pFile = fopen(MOUNT_POINT "/" LOG_FILENAME, "w");
+    this->printf("Probando...\n");
+
 }
 
 void SdWritter::printf(const char* format, ...)
@@ -70,6 +75,6 @@ void SdWritter::printf(const char* format, ...)
     va_start(args, format);
     vfprintf(pFile, format, args);
     va_end(args);
-    
+    fsync(fileno(pFile));
     fflush(pFile);
 }

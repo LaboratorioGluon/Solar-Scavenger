@@ -31,8 +31,8 @@ Comms comms;
 
 #else // RECEPTOR
     Mppt mppt;
-    RcPwm motor(LEDC_CHANNEL_1, GPIO_NUM_17);
-    RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16);
+    RcPwm motor(LEDC_CHANNEL_1, GPIO_NUM_21);
+    RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16, true);
 
     SdWritter sdCard;
 
@@ -126,7 +126,7 @@ void app_main(void)
         motor.setPowerPercentage(0);
     #endif */
 
-    //sdCard.Init();
+    sdCard.Init();
     motor.Init();
     servo.Init();
     LDR.Init();
@@ -142,6 +142,7 @@ void app_main(void)
     gpio_config(&leds);
     gpio_set_level(GPIO_NUM_5, 0);
     gpio_set_level(GPIO_NUM_27, 0);
+    
 
     uint8_t ledValue = 0;
     uint8_t nLedValue = 1;
@@ -165,12 +166,14 @@ void app_main(void)
             gpio_set_level(GPIO_NUM_5  ,1);
             gpio_set_level(GPIO_NUM_27 ,0);
             servo.setPowerPercentage(0);
+            motor.setPowerPercentage(10);
         }
         else
         {
             gpio_set_level(GPIO_NUM_5  ,0);
             gpio_set_level(GPIO_NUM_27 ,1);
             servo.setPowerPercentage(100);
+            motor.setPowerPercentage(0);
         }
         Ina.readCurrentMa();
         vTaskDelay(pdMS_TO_TICKS(500));
