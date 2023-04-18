@@ -10,19 +10,21 @@
 #include "esp_log.h"
 #include "sd.h"
 #include "currentSensor.h"
+#include "common.h"
 
 #define SIMUL_ON
 
 extern "C" void app_main(void);
 
 // Move to Config.h
-#define CALIBRATE_MOTOR 1
+#define CALIBRATE_MOTOR 0
 
 
 static const char* TAG = "Main";
 
 Simul simul;
-Comms comms;
+//Comms comms;
+extern Comms gComms;
 
 #ifdef EMISOR
 
@@ -68,16 +70,22 @@ void Error()
 void Init()
 {
 #if EMISOR
-    comms.Init();
-    comms.activateReception();
+    gComms.Init();
+    gComms.activateReception();
     servo.Init();
     Throttle.Init();
     Rudder.Init();
 #else
-    comms.Init();
-    comms.activateReception();
+    gComms.Init();
+    gComms.activateReception();
     sdCard.Init();
     motor.Init();
+    #if CALIBRATE_MOTOR
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        motor.Init(2000);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        motor.setPowerPercentage(0);
+    #endif 
     servo.Init();
     LDR.Init();
     Ina.Init();
@@ -119,32 +127,26 @@ void app_main(void)
 
     printf("Starting as EMISOR\n");
 
-    comms.addReceiver(mac);
-    uint8_t data[1] = {0x00};
+    gComms.addReceiver(mac);
     commDataTx sendData;
-    
 
     while(true)
     {
         sendData.rudder = (uint32_t) Rudder.ReadValue()/3.3f;
         sendData.throttle = (uint32_t) Throttle.ReadValue()/3.3f;
-        comms.sendCommData(sendData);
+        gComms.sendCommData(sendData);
         ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
         servo.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
     printf("Starting as RECEPTOR1\n");
-    comms.addReceiver(mac);
+    gComms.addReceiver(mac);
 
-    /*#if CALIBRATE_MOTOR
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        motor.Init(2000);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        motor.setPowerPercentage(0);
-    #endif */
+
     struct commDataTx sendData;
     uint32_t power = 0;
+
     while(true){
         servo.setPowerPercentage(gRecvCommData.throttle/10);
         if (power < 1000){
@@ -153,7 +155,15 @@ void app_main(void)
             power = 0;
         }
         sendData.Power = power;
-        comms.sendCommData(sendData);
+        gComms.sendCommData(sendData);
+
+        // Check that comms are working, otherwise restart.
+        if(!gComms.checkComms())
+        {
+            sdCard.printf("[ERROR] Restarting ESP32, no messages received\n");
+            vTaskDelay(pdMS_TO_TICKS(400));
+            esp_restart();
+        }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 

@@ -9,6 +9,7 @@
 //#include "esp_mac.h"
 #include "esp_now.h"
 #include "esp_crc.h"
+#include "esp_timer.h"
 
 #include <string.h>
 
@@ -18,22 +19,22 @@
 static const char* TAG = "Comms";
 
 struct commDataRx gRecvCommData = {0};
-
+Comms gComms;
 // Reception Callback
 void receptionCallback(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
     ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
     memcpy(&gRecvCommData, data, sizeof(struct commDataRx));
-    //ESP_LOGE(TAG,"Datos recibidos en commData: rud: %lu, thr: %lu", gRecvCommData.rudder, gRecvCommData.throttle);    
-
+    
+    gComms.newMessageArrived();
 }
 
 
 
 Comms::Comms()
 {
-
+    lastMessageMicros=0;
 }
 
 esp_err_t Comms::Init()
@@ -82,6 +83,11 @@ esp_err_t Comms::Init()
     return error;
 }
 
+void Comms::newMessageArrived()
+{
+    lastMessageMicros = esp_timer_get_time();
+}
+
 void Comms::addReceiver(uint8_t receiver_mac[6])
 {
     esp_now_peer_info_t peer;
@@ -108,6 +114,15 @@ void Comms::sendRawData(uint8_t *data, uint32_t data_len)
 void Comms::activateReception()
 {
     esp_now_register_recv_cb(receptionCallback);
+}
+
+int Comms::checkComms()
+{
+    if ( (esp_timer_get_time() - lastMessageMicros) > 3000 )
+    {
+        return 1;
+    }
+    return 0;
 }
 
 void Comms::testGetAddr()

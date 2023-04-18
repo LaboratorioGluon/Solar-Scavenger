@@ -37,6 +37,10 @@ public:
     void sendCommData(struct commDataTx data);
     void sendRawData(uint8_t *data, uint32_t data_len);
 
+    int checkComms();
+
+    void newMessageArrived();
+
     void activateReception();
 
     // Run to obtain MAC address
@@ -46,6 +50,8 @@ private:
     uint8_t isInitialized;
 
     uint8_t receiverMac[6];
+
+    uint32_t lastMessageMicros;
 
 };
 
