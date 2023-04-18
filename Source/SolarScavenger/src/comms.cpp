@@ -17,15 +17,15 @@
 
 static const char* TAG = "Comms";
 
-struct commData gRecvCommData = {0};
+struct commDataRx gRecvCommData = {0};
 
 // Reception Callback
 void receptionCallback(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
     ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
-    memcpy(&gRecvCommData, data, sizeof(struct commData));
-    ESP_LOGE(TAG,"Datos recibidos en commData: rud: %lu, thr: %lu", gRecvCommData.rudder, gRecvCommData.throttle);    
+    memcpy(&gRecvCommData, data, sizeof(struct commDataRx));
+    //ESP_LOGE(TAG,"Datos recibidos en commData: rud: %lu, thr: %lu", gRecvCommData.rudder, gRecvCommData.throttle);    
 
 }
 
@@ -94,9 +94,9 @@ void Comms::addReceiver(uint8_t receiver_mac[6])
     memcpy(receiverMac, receiver_mac, ESP_NOW_ETH_ALEN);
 }
 
-void Comms::sendCommData(struct commData data)
+void Comms::sendCommData(struct commDataTx data)
 {
-    sendRawData((uint8_t*)&data, sizeof(struct commData));
+    sendRawData((uint8_t*)&data, sizeof(struct commDataTx));
 }
 
 void Comms::sendRawData(uint8_t *data, uint32_t data_len)

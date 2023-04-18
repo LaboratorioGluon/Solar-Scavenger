@@ -8,7 +8,7 @@
 static const char *TAG = "SD";
 
 #define MOUNT_POINT "/sdcard"
-#define LOG_FILENAME "log.txt"
+#define LOG_FILENAME "log2.txt"
 
 SdWritter::SdWritter()
 {
@@ -37,8 +37,8 @@ void SdWritter::Init()
     /*slot_config.gpio_cd = GPIO_NUM_33;*/
 
 
-    /*gpio_pulldown_dis(GPIO_NUM_13);
-    gpio_pullup_en(GPIO_NUM_13);*/
+    /*gpio_pulldown_dis(GPIO_NUM_2);
+    gpio_pullup_en(GPIO_NUM_2);*/
 
     //esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
@@ -75,6 +75,6 @@ void SdWritter::printf(const char* format, ...)
     va_start(args, format);
     vfprintf(pFile, format, args);
     va_end(args);
-    fsync(fileno(pFile));
     fflush(pFile);
+    fsync(fileno(pFile));
 }

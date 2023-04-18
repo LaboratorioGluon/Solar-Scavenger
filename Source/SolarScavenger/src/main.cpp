@@ -26,8 +26,9 @@ Comms comms;
 
 #ifdef EMISOR
 
-    AdcReader Throttle(1, ADC_CHANNEL_3);
-    AdcReader Rudder(1, ADC_CHANNEL_0);
+    AdcReader Throttle(1, ADC_CHANNEL_7);
+    AdcReader Rudder(1, ADC_CHANNEL_6);
+    RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16, true);
 
 #else // RECEPTOR
     Mppt mppt;
@@ -66,11 +67,34 @@ void Error()
 
 void Init()
 {
-    //motor.Init();
+#if EMISOR
+    comms.Init();
+    comms.activateReception();
+    servo.Init();
+    Throttle.Init();
+    Rudder.Init();
+#else
+    comms.Init();
+    //comms.testGetAddr();
+    comms.activateReception();
+    sdCard.Init();
+    motor.Init();
+    servo.Init();
+    LDR.Init();
+    Ina.Init();
 
-    // Init ESP-NOW
-    // GPIOs
-    // Calibrate sensors
+    sdCard.printf("Hola mundo!...\n");
+    gpio_config_t leds;
+    leds.intr_type = GPIO_INTR_DISABLE;
+    leds.mode = GPIO_MODE_OUTPUT;
+    leds.pin_bit_mask = (1 << GPIO_NUM_5) | (1 << GPIO_NUM_27);
+    leds.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    leds.pull_up_en = GPIO_PULLUP_DISABLE;
+    
+    gpio_config(&leds);
+    gpio_set_level(GPIO_NUM_5, 0);
+    gpio_set_level(GPIO_NUM_27, 0);
+#endif
 }
 
 void Wait()
@@ -90,59 +114,50 @@ void app_main(void)
 {
     uint8_t mac[6]= {MAC_DST};
     
-    comms.Init();
+    Init();
 
-    //comms.testGetAddr();
 
 #ifdef EMISOR
 
     printf("Starting as EMISOR\n");
 
-    Throttle.Init();
-    Rudder.Init();
-
     comms.addReceiver(mac);
     uint8_t data[1] = {0x00};
-    commData sendData;
+    commDataTx sendData;
     
 
     while(true)
     {
-        //comms.sendRawData(data, 1);
-        sendData.rudder = Rudder.ReadValue();
-        sendData.throttle = Throttle.ReadValue();
+        sendData.rudder = (uint32_t) Rudder.ReadValue()/3.3f;
+        sendData.throttle = (uint32_t) Throttle.ReadValue()/3.3f;
         comms.sendCommData(sendData);
         ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
+        servo.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
     printf("Starting as RECEPTOR1\n");
+    comms.addReceiver(mac);
 
-    comms.activateReception();
     /*#if CALIBRATE_MOTOR
         vTaskDelay(pdMS_TO_TICKS(2000));
         motor.Init(2000);
         vTaskDelay(pdMS_TO_TICKS(1000));
         motor.setPowerPercentage(0);
     #endif */
-
-    sdCard.Init();
-    motor.Init();
-    servo.Init();
-    LDR.Init();
-    Ina.Init();
-
-    gpio_config_t leds;
-    leds.intr_type = GPIO_INTR_DISABLE;
-    leds.mode = GPIO_MODE_OUTPUT;
-    leds.pin_bit_mask = (1 << GPIO_NUM_5) | (1 << GPIO_NUM_27);
-    leds.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    leds.pull_up_en = GPIO_PULLUP_DISABLE;
-    
-    gpio_config(&leds);
-    gpio_set_level(GPIO_NUM_5, 0);
-    gpio_set_level(GPIO_NUM_27, 0);
-    
+    struct commDataTx sendData;
+    uint32_t power = 0;
+    while(true){
+        servo.setPowerPercentage(gRecvCommData.throttle/10);
+        if (power < 1000){
+            power += 50;
+        }else{
+            power = 0;
+        }
+        sendData.Power = power;
+        comms.sendCommData(sendData);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 
     uint8_t ledValue = 0;
     uint8_t nLedValue = 1;
@@ -150,6 +165,7 @@ void app_main(void)
     uint32_t startvalue = LDR.ReadValue();
     printf("Start value: %lu \n", startvalue);
     uint32_t lastValue;
+
     while(true)
     {
         /*servo.setPowerPercentage(gRecvCommData.rudder/33);
