@@ -75,7 +75,6 @@ void Init()
     Rudder.Init();
 #else
     comms.Init();
-    //comms.testGetAddr();
     comms.activateReception();
     sdCard.Init();
     motor.Init();
@@ -83,7 +82,6 @@ void Init()
     LDR.Init();
     Ina.Init();
 
-    sdCard.printf("Hola mundo!...\n");
     gpio_config_t leds;
     leds.intr_type = GPIO_INTR_DISABLE;
     leds.mode = GPIO_MODE_OUTPUT;
@@ -159,41 +157,6 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    uint8_t ledValue = 0;
-    uint8_t nLedValue = 1;
-
-    uint32_t startvalue = LDR.ReadValue();
-    printf("Start value: %lu \n", startvalue);
-    uint32_t lastValue;
-
-    while(true)
-    {
-        /*servo.setPowerPercentage(gRecvCommData.rudder/33);
-        motor.setPowerPercentage(gRecvCommData.throttle/33);
-        vTaskDelay(10 / portTICK_PERIOD_MS);*/
-        /*gpio_set_level(GPIO_NUM_5,ledValue);
-        gpio_set_level(GPIO_NUM_27,nLedValue);
-        ledValue = ledValue?0:1;
-        nLedValue = nLedValue?0:1;*/
-
-        lastValue = LDR.ReadValue();
-        if ( lastValue > startvalue*2 )
-        {
-            gpio_set_level(GPIO_NUM_5  ,1);
-            gpio_set_level(GPIO_NUM_27 ,0);
-            servo.setPowerPercentage(0);
-            motor.setPowerPercentage(10);
-        }
-        else
-        {
-            gpio_set_level(GPIO_NUM_5  ,0);
-            gpio_set_level(GPIO_NUM_27 ,1);
-            servo.setPowerPercentage(100);
-            motor.setPowerPercentage(0);
-        }
-        Ina.readCurrentMa();
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
 #endif
 #if 0
     Init();
