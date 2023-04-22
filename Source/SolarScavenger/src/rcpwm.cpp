@@ -51,6 +51,6 @@ void RcPwm::Init(uint32_t initMs)
 
 void RcPwm::setPowerPercentage(uint32_t power)
 {
-    uint32_t microseconds = power*10+1000;
+    uint32_t microseconds = power*20+500;
     setMicrosecondsUp(microseconds);
 }

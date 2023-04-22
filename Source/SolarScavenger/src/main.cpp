@@ -19,11 +19,14 @@ extern "C" void app_main(void);
 // Move to Config.h
 #define CALIBRATE_MOTOR 0
 
+#define LED_RED_PIN    GPIO_NUM_27 
+#define LED_GREEN_PIN  GPIO_NUM_5
+
+uint8_t isFreshStart;
 
 static const char* TAG = "Main";
 
 Simul simul;
-//Comms comms;
 extern Comms gComms;
 
 #ifdef EMISOR
@@ -69,6 +72,17 @@ void Error()
 
 void Init()
 {
+    gpio_config_t leds;
+    leds.intr_type = GPIO_INTR_DISABLE;
+    leds.mode = GPIO_MODE_OUTPUT;
+    leds.pin_bit_mask = (1 << LED_GREEN_PIN) | (1 << LED_RED_PIN);
+    leds.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    leds.pull_up_en = GPIO_PULLUP_DISABLE;
+    
+    gpio_config(&leds);
+    gpio_set_level(LED_GREEN_PIN, 0);
+    gpio_set_level(LED_RED_PIN, 0);
+
 #if EMISOR
     gComms.Init();
     gComms.activateReception();
@@ -89,17 +103,6 @@ void Init()
     servo.Init();
     LDR.Init();
     Ina.Init();
-
-    gpio_config_t leds;
-    leds.intr_type = GPIO_INTR_DISABLE;
-    leds.mode = GPIO_MODE_OUTPUT;
-    leds.pin_bit_mask = (1 << GPIO_NUM_5) | (1 << GPIO_NUM_27);
-    leds.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    leds.pull_up_en = GPIO_PULLUP_DISABLE;
-    
-    gpio_config(&leds);
-    gpio_set_level(GPIO_NUM_5, 0);
-    gpio_set_level(GPIO_NUM_27, 0);
 #endif
 }
 
@@ -118,10 +121,23 @@ void Sail()
 
 void app_main(void)
 {
-    uint8_t mac[6]= {MAC_DST};
     
+    uint8_t mac[6]= {MAC_DST};
     Init();
 
+    
+    //isFreshStart = (esp_reset_reason() == ESP_RST_POWERON);
+    esp_reset_reason_t resetReason;
+    resetReason = esp_reset_reason();
+    if(resetReason == ESP_RST_POWERON)
+    {
+        gpio_set_level(LED_GREEN_PIN, 1);
+    }
+    else if(resetReason == ESP_RST_BROWNOUT)
+    {
+        gpio_set_level(LED_GREEN_PIN, 1);
+        gpio_set_level(LED_RED_PIN, 1);
+    }
 
 #ifdef EMISOR
 
@@ -137,33 +153,48 @@ void app_main(void)
         gComms.sendCommData(sendData);
         ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
         servo.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
+        if(gComms.checkComms())
+        {
+            gpio_set_level(LED_GREEN_PIN, 0);
+            gpio_set_level(LED_RED_PIN, 1);
+        }
+        else 
+        {
+            gpio_set_level(LED_RED_PIN, 0);
+            gpio_set_level(LED_GREEN_PIN, 1);
+        }
+
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
     printf("Starting as RECEPTOR1\n");
     gComms.addReceiver(mac);
 
-
     struct commDataTx sendData;
     uint32_t power = 0;
 
-    while(true){
+    while(true)
+    {
         servo.setPowerPercentage(gRecvCommData.throttle/10);
+
         if (power < 1000){
             power += 50;
         }else{
             power = 0;
         }
+
         sendData.Power = power;
         gComms.sendCommData(sendData);
 
         // Check that comms are working, otherwise restart.
-        if(!gComms.checkComms())
+        if(gComms.checkComms())
         {
+            ESP_LOGE(TAG, "Restarting due to missing communications.");
             sdCard.printf("[ERROR] Restarting ESP32, no messages received\n");
             vTaskDelay(pdMS_TO_TICKS(400));
             esp_restart();
         }
+
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 

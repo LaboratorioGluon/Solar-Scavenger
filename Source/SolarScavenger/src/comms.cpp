@@ -75,7 +75,7 @@ esp_err_t Comms::Init()
     if (error != ESP_OK)
         return error;
 
-    error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
+    error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
     
     if (error != ESP_OK)
         return error;
@@ -118,7 +118,7 @@ void Comms::activateReception()
 
 int Comms::checkComms()
 {
-    if ( (esp_timer_get_time() - lastMessageMicros) > 3000 )
+    if ( (esp_timer_get_time() - lastMessageMicros) > 3000000ULL )
     {
         return 1;
     }

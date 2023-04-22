@@ -51,7 +51,7 @@ private:
 
     uint8_t receiverMac[6];
 
-    uint32_t lastMessageMicros;
+    uint64_t lastMessageMicros;
 
 };
 
