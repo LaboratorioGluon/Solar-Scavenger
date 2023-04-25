@@ -3,8 +3,8 @@
 #include "nvs_flash.h"
 //#include "esp_random.h"
 #include "esp_event.h"
-#include "esp_netif.h"
 #include "esp_wifi.h"
+#include "esp_netif.h"
 #include "esp_log.h"
 //#include "esp_mac.h"
 #include "esp_now.h"
@@ -17,9 +17,6 @@
 #define ESPNOW_CHANNEL 1
 
 static const char* TAG = "Comms";
-
-struct commDataRx gRecvCommData = {0};
-Comms gComms;
 
 typedef struct
 {
@@ -39,6 +36,16 @@ typedef struct
   uint8_t payload[0];
 } wifi_ieee80211_packet_t;
 
+struct commDataRx gRecvCommData = {0};
+
+/**
+ * Stores the latest received RSSI in DB and unsigned (despite the measuring is negative).
+ * Usually range from 10 - 120, being 10 the best signal qualitiy and 120 the worst.
+*/
+uint8_t lastRssiDb = 0;
+
+Comms gComms;
+
 // Reception Callback
 void receptionCallback(const esp_now_recv_info *mac_addr, const uint8_t *data, int data_len)
 {
@@ -51,6 +58,7 @@ void receptionCallback(const esp_now_recv_info *mac_addr, const uint8_t *data, i
 
 void receptionCallbackPromisc(void *buf, wifi_promiscuous_pkt_type_t type)
 {
+    // Get only management frames
     if (type != WIFI_PKT_MGMT)
         return;
     
@@ -62,15 +70,15 @@ void receptionCallbackPromisc(void *buf, wifi_promiscuous_pkt_type_t type)
     // Filter vendor specific frame with the esp oui.
     if (((ipkt->category_code) == 127) && (memcmp(ipkt->oui, esp_oui,3) == 0))
     {
+        lastRssiDb = (uint8_t) abs(ppkt->rx_ctrl.rssi);
         ESP_LOGE(TAG, "Nuevo mgm frame received -> %d dbm", ppkt->rx_ctrl.rssi);
     }
 }
 
-
-
 Comms::Comms()
 {
     lastMessageMicros=0;
+    lastRssiDb = 0;
 }
 
 esp_err_t Comms::Init()

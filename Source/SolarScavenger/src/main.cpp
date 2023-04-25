@@ -140,7 +140,7 @@ void app_main(void)
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
-    printf("Starting as RECEPTOR1\n");
+    printf("Starting as RECEPTOR\n");
     gComms.addReceiver(mac);
 
 
@@ -155,6 +155,7 @@ void app_main(void)
             power = 0;
         }
         sendData.Power = power;
+        sendData.SignalDb = lastRssiDb;
         gComms.sendCommData(sendData);
 
         // Check that comms are working, otherwise restart.

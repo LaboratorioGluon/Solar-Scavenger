@@ -22,6 +22,7 @@ struct commDataTx
 {
     uint32_t Power;     // [0-1000] * 0.1W 
     uint32_t BattLevel; // [3500 - 4900] * 1mV
+    uint8_t  SignalDb;  //[10 - 120] Db
 };
 
 extern struct commDataRx gRecvCommData;
@@ -47,6 +48,7 @@ public:
     void testGetAddr();
 
 private:
+
     uint8_t isInitialized;
 
     uint8_t receiverMac[6];
