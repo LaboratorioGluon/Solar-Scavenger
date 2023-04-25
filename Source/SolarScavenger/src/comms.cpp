@@ -20,14 +20,50 @@ static const char* TAG = "Comms";
 
 struct commDataRx gRecvCommData = {0};
 Comms gComms;
+
+typedef struct
+{
+  unsigned frame_ctrl : 16;  // 2 bytes / 16 bit fields
+  unsigned duration_id : 16; // 2 bytes / 16 bit fields
+  uint8_t addr1[6];          // receiver address
+  uint8_t addr2[6];          //sender address
+  uint8_t addr3[6];          // filtering address
+  unsigned sequence_ctrl : 16; // 2 bytes / 16 bit fields
+} wifi_ieee80211_mac_hdr_t;    // 24 bytes
+
+typedef struct
+{
+  wifi_ieee80211_mac_hdr_t hdr;
+  unsigned category_code : 8; // 1 byte / 8 bit fields
+  uint8_t oui[3]; // 3 bytes / 24 bit fields
+  uint8_t payload[0];
+} wifi_ieee80211_packet_t;
+
 // Reception Callback
-void receptionCallback(const uint8_t *mac_addr, const uint8_t *data, int data_len)
+void receptionCallback(const esp_now_recv_info *mac_addr, const uint8_t *data, int data_len)
 {
     ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
     memcpy(&gRecvCommData, data, sizeof(struct commDataRx));
     
     gComms.newMessageArrived();
+}
+
+void receptionCallbackPromisc(void *buf, wifi_promiscuous_pkt_type_t type)
+{
+    if (type != WIFI_PKT_MGMT)
+        return;
+    
+    const wifi_promiscuous_pkt_t *ppkt = (wifi_promiscuous_pkt_t *)buf;
+    const wifi_ieee80211_packet_t *ipkt = (wifi_ieee80211_packet_t *)ppkt->payload;
+
+    static const uint8_t esp_oui[3] = {0x18, 0xfe, 0x34}; // esp32 oui
+
+    // Filter vendor specific frame with the esp oui.
+    if (((ipkt->category_code) == 127) && (memcmp(ipkt->oui, esp_oui,3) == 0))
+    {
+        ESP_LOGE(TAG, "Nuevo mgm frame received -> %d dbm", ppkt->rx_ctrl.rssi);
+    }
 }
 
 
@@ -75,11 +111,24 @@ esp_err_t Comms::Init()
     if (error != ESP_OK)
         return error;
 
-    error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
+    error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
+    //error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B);
+    //error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
     
     if (error != ESP_OK)
         return error;
+
+    error = esp_wifi_set_promiscuous(true);
+    
+    if (error != ESP_OK)
+        return error;
+
     error = esp_now_init();
+
+    if (error != ESP_OK)
+        return error;
+
+    error = esp_wifi_set_max_tx_power(84);
     return error;
 }
 
@@ -114,6 +163,7 @@ void Comms::sendRawData(uint8_t *data, uint32_t data_len)
 void Comms::activateReception()
 {
     esp_now_register_recv_cb(receptionCallback);
+    esp_wifi_set_promiscuous_rx_cb(&receptionCallbackPromisc);
 }
 
 int Comms::checkComms()
