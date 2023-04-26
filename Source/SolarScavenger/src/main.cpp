@@ -19,7 +19,6 @@ extern "C" void app_main(void);
 // Move to Config.h
 #define CALIBRATE_MOTOR 0
 
-
 static const char* TAG = "Main";
 
 Simul simul;
@@ -118,7 +117,8 @@ void Sail()
 
 void app_main(void)
 {
-    uint8_t mac[6]= {MAC_DST};
+    uint8_t mac_receptor[6]= {MAC_REC};
+    uint8_t mac_emisor[6]  = {MAC_EMI};
     
     Init();
 
@@ -127,7 +127,7 @@ void app_main(void)
 
     printf("Starting as EMISOR\n");
 
-    gComms.addReceiver(mac);
+    gComms.addReceiver(mac_receptor);
     commDataTx sendData;
 
     while(true)
@@ -137,11 +137,12 @@ void app_main(void)
         gComms.sendCommData(sendData);
         ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
         servo.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
+        ESP_LOGE(TAG, "Signal strength: -%d Db", gRecvCommData.SignalDb);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
     printf("Starting as RECEPTOR\n");
-    gComms.addReceiver(mac);
+    gComms.addReceiver(mac_emisor);
 
 
     struct commDataTx sendData;

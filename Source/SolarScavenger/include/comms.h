@@ -26,6 +26,7 @@ struct commDataTx
 };
 
 extern struct commDataRx gRecvCommData;
+extern uint8_t lastRssiDb;
 
 class Comms
 {

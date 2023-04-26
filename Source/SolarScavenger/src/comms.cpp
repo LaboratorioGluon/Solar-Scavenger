@@ -40,7 +40,7 @@ struct commDataRx gRecvCommData = {0};
 
 /**
  * Stores the latest received RSSI in DB and unsigned (despite the measuring is negative).
- * Usually range from 10 - 120, being 10 the best signal qualitiy and 120 the worst.
+ * Usually range from 0 - 120, being 0 the best signal qualitiy and 120 the worst.
 */
 uint8_t lastRssiDb = 0;
 
@@ -171,7 +171,15 @@ void Comms::sendRawData(uint8_t *data, uint32_t data_len)
 void Comms::activateReception()
 {
     esp_now_register_recv_cb(receptionCallback);
+
+    #ifndef EMISOR
+    /**
+     * We only want to measure the signal in the receiver side (as tested, signal strength is no symmetrical)
+     * as is the more critical side.
+     * To measure on both sides, uncomment define. 
+     */
     esp_wifi_set_promiscuous_rx_cb(&receptionCallbackPromisc);
+    #endif
 }
 
 int Comms::checkComms()
