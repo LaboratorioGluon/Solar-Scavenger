@@ -22,6 +22,8 @@ extern "C" void app_main(void);
 #define LED_RED_PIN    GPIO_NUM_27 
 #define LED_GREEN_PIN  GPIO_NUM_5
 
+#define CMD_MPPT_LIMIT 850
+
 uint8_t isFreshStart;
 
 static const char* TAG = "Main";
@@ -172,7 +174,7 @@ void app_main(void)
         gpio_set_level(LED_RED_PIN, 1);
     }
 
-#ifdef EMISOR
+#ifdef MANDO
 
     printf("Starting as MANDO\n");
 
@@ -212,17 +214,16 @@ void app_main(void)
     float current=0;
     float emaCurrent = 0;
     float meanCurrent=0;
-    float last_current = 0;
     float voltage=0;
     float emaVoltage = 0;
     float meanVoltage = 0;
-    float last_voltage = 0;
     uint32_t nMeasures = 0;
-    uint32_t read_motor_cycle;
+    uint32_t mpptOuput;
 
     float alpha = 0.25;
 
     uint32_t cycle = 0;
+
 
     while(true)
     {
@@ -240,15 +241,21 @@ void app_main(void)
             emaCurrent = current*alpha + emaCurrent*(1-alpha);
             emaVoltage = voltage*alpha + emaVoltage*(1-alpha);
 
-            last_current = current;
-            last_voltage = voltage;
+            if (gRecvCommData.throttle > CMD_MPPT_LIMIT)
+            {
+                mpptOuput = mppt.mpptIC(emaVoltage, emaCurrent);
 
-            read_motor_cycle = mppt.mpptIC(emaVoltage, emaCurrent);
+                ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
+                sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
 
-            ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,read_motor_cycle);
-            sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,read_motor_cycle);
-
-            motor.setPowerPercentage(read_motor_cycle);
+                motor.setPowerPercentage(mpptOuput);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "[MANUAL]%lu", gRecvCommData.throttle);
+                motor.setPowerPercentage(gRecvCommData.throttle/10);
+            }
+            
 
             nMeasures = 0;
             meanCurrent = 0;
@@ -259,6 +266,8 @@ void app_main(void)
             
             //ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
             servo.setPowerPercentage(gRecvCommData.rudder/10.0f);
+            motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
+
             sendData.Power = (uint32_t)(emaVoltage * emaCurrent) *100.0f; //TODO - quitar el x10, puesto para pruebas
             sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;
             gComms.sendCommData(sendData);
