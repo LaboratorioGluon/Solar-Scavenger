@@ -17,7 +17,7 @@
 extern "C" void app_main(void);
 
 // Move to Config.h
-#define CALIBRATE_MOTOR 0
+#define CALIBRATE_MOTOR 1
 
 #define LED_RED_PIN    GPIO_NUM_27 
 #define LED_GREEN_PIN  GPIO_NUM_5
@@ -26,16 +26,18 @@ uint8_t isFreshStart;
 
 static const char* TAG = "Main";
 
-Simul simul;
+//Simul simul;
 extern Comms gComms;
 
-#ifdef EMISOR
+#ifdef MANDO
 
     AdcReader Throttle(1, ADC_CHANNEL_7);
     AdcReader Rudder(1, ADC_CHANNEL_6);
-    RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16, true);
+    RcPwm servoPower(LEDC_CHANNEL_0, GPIO_NUM_18, true);
+    RcPwm servoSignal(LEDC_CHANNEL_1, GPIO_NUM_17, true);
+    RcPwm servoBattery(LEDC_CHANNEL_2, GPIO_NUM_16, true);
 
-#else // RECEPTOR
+#else // BARCO
     Mppt mppt;
     RcPwm motor(LEDC_CHANNEL_1, GPIO_NUM_21);
     RcPwm servo(LEDC_CHANNEL_0, GPIO_NUM_16, true);
@@ -43,11 +45,20 @@ extern Comms gComms;
     SdWritter sdCard;
 
     AdcReader LDR(1, ADC_CHANNEL_3);
+    AdcReader BatteryLevel(1, ADC_CHANNEL_4);
+    AdcReader motorVoltage(1, ADC_CHANNEL_0);
     CurrentSensor Ina(GPIO_NUM_22, GPIO_NUM_23, 0x45);
 
 #endif 
 
 
+void waitForChar(){
+    char b;
+    do{
+        b = getchar();
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }while(b == 0xFF);
+}
 
 
 
@@ -83,25 +94,47 @@ void Init()
     gpio_set_level(LED_GREEN_PIN, 0);
     gpio_set_level(LED_RED_PIN, 0);
 
-#if EMISOR
+#if MANDO
     gComms.Init();
     gComms.activateReception();
-    servo.Init();
+    servoPower.Init();
+    servoSignal.Init();
+    servoPower.Init();
     Throttle.Init();
-    Rudder.Init();
+    servoBattery.Init();
+    servoPower.setPowerPercentage(0);
+    servoSignal.setPowerPercentage(0);
+    servoBattery.setPowerPercentage(0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    servoPower.setPowerPercentage(100);
+    servoSignal.setPowerPercentage(100);
+    servoBattery.setPowerPercentage(100);
+    vTaskDelay(pdMS_TO_TICKS(0));
+    servoPower.setPowerPercentage(100);
+    servoSignal.setPowerPercentage(100);
+    servoBattery.setPowerPercentage(100);
+    
+
 #else
     gComms.Init();
     gComms.activateReception();
     sdCard.Init();
-    motor.Init();
     #if CALIBRATE_MOTOR
         vTaskDelay(pdMS_TO_TICKS(2000));
         motor.Init(2000);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        printf("Connect the ESC now!\n");
+        printf("Wait for 2 beeps from the ESC and press a key\n");
+        waitForChar();
         motor.setPowerPercentage(0);
+        printf("Wait for 1,2,3 beeps \n");
+        waitForChar();
+    #else
+        motor.Init();
     #endif 
     servo.Init();
     LDR.Init();
+    BatteryLevel.Init();
+    motorVoltage.Init();
     Ina.Init();
 #endif
 }
@@ -141,7 +174,7 @@ void app_main(void)
 
 #ifdef EMISOR
 
-    printf("Starting as EMISOR\n");
+    printf("Starting as MANDO\n");
 
     gComms.addReceiver(mac);
     commDataTx sendData;
@@ -152,8 +185,10 @@ void app_main(void)
         sendData.throttle = (uint32_t) Throttle.ReadValue()/3.3f;
         gComms.sendCommData(sendData);
         ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
-        servo.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
-        if(gComms.checkComms())
+        ESP_LOGE(TAG, "Receiving values: Power: %lu, Batt: %lu", gRecvCommData.Power, gRecvCommData.BattLevel);
+        servoPower.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
+        servoBattery.setPowerPercentage(((uint32_t)gRecvCommData.BattLevel-3500.0f)/14.0f);
+        /*if(gComms.checkComms())
         {
             gpio_set_level(LED_GREEN_PIN, 0);
             gpio_set_level(LED_RED_PIN, 1);
@@ -162,97 +197,87 @@ void app_main(void)
         {
             gpio_set_level(LED_RED_PIN, 0);
             gpio_set_level(LED_GREEN_PIN, 1);
-        }
+        }*/
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
-    printf("Starting as RECEPTOR1\n");
+    printf("Starting as BARCO\n");
     gComms.addReceiver(mac);
 
     struct commDataTx sendData;
     uint32_t power = 0;
+    int32_t delta = 2;
+
+    float current=0;
+    float emaCurrent = 0;
+    float meanCurrent=0;
+    float last_current = 0;
+    float voltage=0;
+    float emaVoltage = 0;
+    float meanVoltage = 0;
+    float last_voltage = 0;
+    uint32_t nMeasures = 0;
+    uint32_t read_motor_cycle;
+
+    float alpha = 0.25;
+
+    uint32_t cycle = 0;
 
     while(true)
     {
-        servo.setPowerPercentage(gRecvCommData.throttle/10);
 
-        if (power < 1000){
-            power += 50;
-        }else{
-            power = 0;
+        meanCurrent += Ina.readCurrentMa()/1000.0f;
+        meanVoltage += (motorVoltage.ReadValue()/0.12f)/1000.0f;
+        nMeasures++;
+
+        if(cycle % 20 == 0)
+        {
+            current = meanCurrent/nMeasures;
+            voltage = meanVoltage/nMeasures;
+
+            // EMA Filter
+            emaCurrent = current*alpha + emaCurrent*(1-alpha);
+            emaVoltage = voltage*alpha + emaVoltage*(1-alpha);
+
+            last_current = current;
+            last_voltage = voltage;
+
+            read_motor_cycle = mppt.mpptIC(emaVoltage, emaCurrent);
+
+            ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,read_motor_cycle);
+            sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,read_motor_cycle);
+
+            motor.setPowerPercentage(read_motor_cycle);
+
+            nMeasures = 0;
+            meanCurrent = 0;
+            meanVoltage = 0;
         }
 
-        sendData.Power = power;
-        gComms.sendCommData(sendData);
+        if(cycle % 20 == 0){
+            
+            //ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
+            servo.setPowerPercentage(gRecvCommData.rudder/10.0f);
+            sendData.Power = (uint32_t)(emaVoltage * emaCurrent) *100.0f; //TODO - quitar el x10, puesto para pruebas
+            sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;
+            gComms.sendCommData(sendData);
+        }
+
 
         // Check that comms are working, otherwise restart.
-        if(gComms.checkComms())
+        /*if(gComms.checkComms())
         {
             ESP_LOGE(TAG, "Restarting due to missing communications.");
             sdCard.printf("[ERROR] Restarting ESP32, no messages received\n");
             vTaskDelay(pdMS_TO_TICKS(400));
             esp_restart();
-        }
+        }*/
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        cycle++;
     }
 
 #endif
-#if 0
-    Init();
-    Wait();
-    Sail();
 
-    printf("Start\n");
-    motor.Init();
-    uint32_t powerLevel = 0;
-    int8_t direction = 1; // o -1 para atras
-    while (true)
-    {
-        powerLevel += direction;
-        if (powerLevel >= 100)
-        {
-            direction = -1;
-        }
-        else if (powerLevel <= 0)
-        {
-            direction = 1;
-        }
-        motor.setPowerPercentage(powerLevel);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    return;
-
-    uint32_t read_motor_cycle = 80;
-    float v = 5, i = 0;
-
-#ifdef SIMUL_ON
-
-    while (true)
-    {
-        i = simul.calculateI(v);
-        read_motor_cycle = mppt.mpptPO(v, i);
-
-        printf("Motor cycle: %d \n", read_motor_cycle);
-        printf("   Power: %f \n", v * i);
-
-        v = simul.recalculateV(v, read_motor_cycle);
-        printf("   New V: %f New I: %f \n", v, i);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-
-#else
-
-    while (true)
-    {
-        if (read_motor_cycle < 60)
-            set_motor_duty_cycle(read_motor_cycle);
-        else
-            set_motor_duty_cycle(mppt.mpptPO(v, i));
-    }
-
-#endif
-#endif
 }

@@ -1,4 +1,4 @@
-
+#if 0
 #include "simul.h"
 #include <math.h>
 
@@ -36,3 +36,5 @@ float Simul::recalculateV (float v, uint32_t duty_cycle){
 
     return result;
 }
+
+#endif

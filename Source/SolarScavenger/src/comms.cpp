@@ -23,7 +23,7 @@ Comms gComms;
 // Reception Callback
 void receptionCallback(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 {
-    ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
+    //ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
     memcpy(&gRecvCommData, data, sizeof(struct commDataRx));
     

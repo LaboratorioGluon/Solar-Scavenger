@@ -3,15 +3,15 @@
 #include <stdlib.h>
 
 #define MAX_DUTY_CYCLE 100
-#define MIN_DUTY_CYCLE  20
+#define MIN_DUTY_CYCLE  10
 
 #define MAX_VOLTAGE   21.6
 #define OPT_VOLTAGE   17.8
 
 #define STEP_0           0
 #define STEP_1           1
-#define STEP_2           2
-#define STEP_3           3
+#define STEP_2           1
+#define STEP_3           1
 
 #define PERCENT_10_V (MAX_VOLTAGE * 10 ) / 100  // 2,16V
 #define PERCENT_20_V (MAX_VOLTAGE * 20 ) / 100  // 4,32V
@@ -53,7 +53,7 @@ uint32_t Mppt::mpptIC(float v, float i){
         prev_v     = v;
         prev_i     = i;
         prev_p     = v * i;
-        duty_cycle = 90;
+        duty_cycle = 20;
         first_run  = false;
     }
 
