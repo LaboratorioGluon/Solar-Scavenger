@@ -25,8 +25,15 @@ esp_err_t CurrentSensor::Init()
 
     uint8_t reg = 0;
     uint8_t read[2]={0};
+    uint8_t writeBack[4] = {0};
     esp_err_t ret;
     ret = i2c_master_write_read_device( i2c_master_port, 0x45, &reg, 1, read, 2, pdMS_TO_TICKS(1000));
+
+    read[0] |= 0b1110 << 3;
+    writeBack[0] = 0;
+    writeBack[1] = read[1];
+    writeBack[2] = read[0];
+    i2c_master_write_read_device( i2c_master_port, 0x45, writeBack, 3, read, 2, pdMS_TO_TICKS(1000));
     ESP_LOGE(TAG, "Read (%d) : 0x%x 0x%x",ret, read[0], read[1]);
 
     // @TODO: Hacer un check de que hemos leido bien
@@ -39,6 +46,9 @@ uint32_t CurrentSensor::readCurrentMa()
     uint8_t read[2]={0};
     i2c_master_write_read_device( i2c_master_port, 0x45, &reg, 1, read, 2, pdMS_TO_TICKS(1000));
     uint32_t valueMa = (read[0]<<8 | read[1])/5;
-    ESP_LOGE(TAG, "Read : 0x%x 0x%x -> %lu", read[0], read[1], valueMa);
+    //ESP_LOGE(TAG, "Read : 0x%x 0x%x -> %lu", read[0], read[1], valueMa);
+    if(valueMa > 10000){
+        valueMa = 0;
+    }
     return valueMa;
 }

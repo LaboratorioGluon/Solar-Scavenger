@@ -49,7 +49,7 @@ Comms gComms;
 // Reception Callback
 void receptionCallback(const esp_now_recv_info *mac_addr, const uint8_t *data, int data_len)
 {
-    ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
+    //ESP_LOGE(TAG, "Nuevos datos recibidos %d > %u", data_len, data[0]);
 
     memcpy(&gRecvCommData, data, sizeof(struct commDataRx));
     
@@ -71,7 +71,7 @@ void receptionCallbackPromisc(void *buf, wifi_promiscuous_pkt_type_t type)
     if (((ipkt->category_code) == 127) && (memcmp(ipkt->oui, esp_oui,3) == 0))
     {
         lastRssiDb = (uint8_t) abs(ppkt->rx_ctrl.rssi);
-        ESP_LOGE(TAG, "Nuevo mgm frame received -> %d dbm", ppkt->rx_ctrl.rssi);
+        //ESP_LOGE(TAG, "Nuevo mgm frame received -> %d dbm", ppkt->rx_ctrl.rssi);  // For debug pourposes
     }
 }
 
@@ -98,6 +98,7 @@ esp_err_t Comms::Init()
     error = esp_event_loop_create_default();
     if (error != ESP_OK)
         return error;
+        
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     error = esp_wifi_init(&cfg);
     if (error != ESP_OK)
@@ -120,8 +121,6 @@ esp_err_t Comms::Init()
         return error;
 
     error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
-    //error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B);
-    //error = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
     
     if (error != ESP_OK)
         return error;
@@ -184,7 +183,7 @@ void Comms::activateReception()
 
 int Comms::checkComms()
 {
-    if ( (esp_timer_get_time() - lastMessageMicros) > 3000 )
+    if ( (esp_timer_get_time() - lastMessageMicros) > 3000000ULL )
     {
         return 1;
     }

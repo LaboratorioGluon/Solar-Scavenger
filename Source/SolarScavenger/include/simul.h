@@ -1,4 +1,5 @@
 
+#if 0
 #ifndef __SIMUL_H__
 #define __SIMUL_H__
 
@@ -18,3 +19,4 @@ private:
 };
 
 #endif //__SIMUL_H__
+#endif

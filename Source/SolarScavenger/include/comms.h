@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "esp_err.h"
 
-#ifdef EMISOR
+#ifdef MANDO
 struct commDataTx
 #else 
 struct commDataRx
@@ -14,7 +14,7 @@ struct commDataRx
     uint32_t throttle; // [ 0 - 1000]: 0 - Parado, 1000-  A toa' leche
 };
 
-#ifdef EMISOR
+#ifdef MANDO
 struct commDataRx
 #else 
 struct commDataTx
@@ -54,7 +54,7 @@ private:
 
     uint8_t receiverMac[6];
 
-    uint32_t lastMessageMicros;
+    uint64_t lastMessageMicros;
 
 };
 

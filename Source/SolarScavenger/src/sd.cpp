@@ -68,7 +68,7 @@ void SdWritter::printf(const char* format, ...)
 {
    va_list args;
     if (pFile == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for writing");
+        //ESP_LOGE(TAG, "Failed to open file for writing");
         return;
     }
 
