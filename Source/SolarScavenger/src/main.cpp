@@ -217,7 +217,7 @@ void app_main(void)
     uint32_t mpptOuput = 0;
 
     float alpha = 0.25;
-
+    uint8_t isMppt = 0;
     uint32_t cycle = 0;
 
 
@@ -239,6 +239,7 @@ void app_main(void)
 
             if (gRecvCommData.throttle > CMD_MPPT_LIMIT)
             {
+                isMppt = 1;
                 mpptOuput = mppt.mpptIC(emaVoltage, emaCurrent);
 
                 ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
@@ -248,6 +249,7 @@ void app_main(void)
             }
             else
             {
+                isMppt= 0;
                 ESP_LOGE(TAG, "[MANUAL]%lu", gRecvCommData.throttle);
                 motor.setPowerPercentage(gRecvCommData.throttle/10);
             }
@@ -260,9 +262,10 @@ void app_main(void)
 
         if(cycle % 20 == 0){
             
-            //ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
-            servo.setPowerPercentage(gRecvCommData.rudder/10.0f);
-            motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
+            ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
+            servo.setPowerPercentage(gRecvCommData.rudder/10);
+            if(!isMppt)
+                motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
 
             sendData.Power     = (uint32_t)(emaVoltage * emaCurrent) *100.0f; //TODO - quitar el x10, puesto para pruebas
             sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;

@@ -9,9 +9,9 @@
 #define OPT_VOLTAGE   17.8
 
 #define STEP_0           0
-#define STEP_1           1
-#define STEP_2           1
-#define STEP_3           1
+#define STEP_1           2
+#define STEP_2           2
+#define STEP_3           2
 
 #define PERCENT_10_V (MAX_VOLTAGE * 10 ) / 100  // 2,16V
 #define PERCENT_20_V (MAX_VOLTAGE * 20 ) / 100  // 4,32V
