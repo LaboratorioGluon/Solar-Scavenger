@@ -12,6 +12,7 @@ struct commDataRx
 {
     uint32_t rudder; // [0-1000]: 0 - Babor, 500 - Centro,  1000 - Estribor
     uint32_t throttle; // [ 0 - 1000]: 0 - Parado, 1000-  A toa' leche
+    uint32_t isModeMppt; // 0 - Manual , 1 - MPPT
 };
 
 #ifdef MANDO

@@ -53,7 +53,7 @@ uint32_t Mppt::mpptIC(float v, float i){
         prev_v     = v;
         prev_i     = i;
         prev_p     = v * i;
-        duty_cycle = 20;
+        duty_cycle = first_duty_cycle;
         first_run  = false;
     }
 
@@ -93,7 +93,7 @@ uint32_t Mppt::mpptPO(float v, float i){
         prev_v     = v;
         prev_i     = i;
         prev_p     = v * i;
-        duty_cycle = 90;
+        duty_cycle = first_duty_cycle;
         first_run  = false;
     }
 
@@ -121,10 +121,11 @@ uint32_t Mppt::mpptPO(float v, float i){
     return duty_cycle;
 }
 
-void Mppt::resetMppt(){
+void Mppt::resetMppt(uint32_t first_duty){
     prev_v     = 0.0f;
     prev_i     = 0.0f;
     prev_p     = 0.0f;
     duty_cycle = 0.0f;
+    first_duty_cycle = first_duty<20?20:first_duty;
     first_run  = true;
 }

@@ -36,7 +36,7 @@ typedef struct
   uint8_t payload[0];
 } wifi_ieee80211_packet_t;
 
-struct commDataRx gRecvCommData = {0};
+struct commDataRx gRecvCommData;
 
 /**
  * Stores the latest received RSSI in DB and unsigned (despite the measuring is negative).
@@ -79,6 +79,7 @@ Comms::Comms()
 {
     lastMessageMicros=0;
     lastRssiDb = 0;
+    memset(&gRecvCommData, 0, sizeof(commDataRx));
 }
 
 esp_err_t Comms::Init()

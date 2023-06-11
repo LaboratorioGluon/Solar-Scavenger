@@ -20,7 +20,8 @@ extern "C" void app_main(void);
 #define CALIBRATE_MOTOR 0
 #define LED_RED_PIN    GPIO_NUM_27 
 #define LED_GREEN_PIN  GPIO_NUM_5
-#define CMD_MPPT_LIMIT 1000
+#define LDR_PIN        GPIO_NUM_39
+#define CMD_MPPT_LIMIT 998
 
 uint8_t isFreshStart;
 
@@ -36,6 +37,9 @@ extern Comms gComms;
     RcPwm servoPower(LEDC_CHANNEL_0, GPIO_NUM_18, true);
     RcPwm servoSignal(LEDC_CHANNEL_1, GPIO_NUM_17, true);
     RcPwm servoBattery(LEDC_CHANNEL_2, GPIO_NUM_16, true);
+
+    AdcReader LDR(1, ADC_CHANNEL_3);
+
 
 #else // BARCO
     Mppt mppt;
@@ -109,10 +113,21 @@ void Init()
     servoPower.setPowerPercentage(100);
     servoSignal.setPowerPercentage(100);
     servoBattery.setPowerPercentage(100);
-    vTaskDelay(pdMS_TO_TICKS(0));
+    vTaskDelay(pdMS_TO_TICKS(1000));
     servoPower.setPowerPercentage(100);
     servoSignal.setPowerPercentage(100);
     servoBattery.setPowerPercentage(100);
+
+    LDR.Init();
+    // isMpptButton
+    /*gpio_config_t mpttButtonGpio;
+    mpttButtonGpio.intr_type = GPIO_INTR_DISABLE;
+    mpttButtonGpio.mode = GPIO_MODE_INPUT;
+    mpttButtonGpio.pin_bit_mask = (1 << LDR_PIN);
+    mpttButtonGpio.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    mpttButtonGpio.pull_up_en = GPIO_PULLUP_DISABLE;
+    
+    gpio_config(&mpttButtonGpio);*/
     
 
 #else
@@ -182,8 +197,9 @@ void app_main(void)
     {
         sendData.rudder = (uint32_t) Rudder.ReadValue()/3.3f;
         sendData.throttle = (uint32_t) Throttle.ReadValue()/3.3f;
+        sendData.isModeMppt = (uint32_t) (LDR.ReadValue() > 1500);
         gComms.sendCommData(sendData);
-        ESP_LOGE(TAG, "Sending values: %lu, %lu", sendData.rudder, sendData.throttle);
+        ESP_LOGE(TAG, "Sending values: %lu, %lu, %lu", sendData.rudder, sendData.throttle, sendData.isModeMppt);
         ESP_LOGE(TAG, "Receiving values: Power: %lu, Batt: %lu, Signal: -%d Db", gRecvCommData.Power, gRecvCommData.BattLevel, gRecvCommData.SignalDb );
         servoPower.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
         servoBattery.setPowerPercentage(((uint32_t)gRecvCommData.BattLevel-3500.0f)/14.0f);
@@ -222,6 +238,7 @@ void app_main(void)
     uint8_t isMppt = 0;
     uint32_t cycle = 0;
 
+    uint32_t last_motor_duty = 0;
 
     while(true)
     {
@@ -241,8 +258,12 @@ void app_main(void)
             emaCurrent = current*alpha + emaCurrent*(1-alpha);
             emaVoltage = voltage*alpha + emaVoltage*(1-alpha);
 
-            if (gRecvCommData.throttle > CMD_MPPT_LIMIT)
+            if (gRecvCommData.isModeMppt == 1)
             {
+                if(isMppt == 0)
+                {
+                    mppt.resetMppt(last_motor_duty);
+                }
                 isMppt = 1;
                 mpptOuput = mppt.mpptIC(emaVoltage, emaCurrent);
 
@@ -250,12 +271,14 @@ void app_main(void)
                 sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
 
                 motor.setPowerPercentage(mpptOuput);
+                last_motor_duty = mpptOuput;
             }
             else
             {
                 isMppt= 0;
                 ESP_LOGE(TAG, "[MANUAL]%lu", gRecvCommData.throttle);
                 motor.setPowerPercentage(gRecvCommData.throttle/10);
+                last_motor_duty = gRecvCommData.throttle/10;
             }
             
 
@@ -269,7 +292,10 @@ void app_main(void)
             ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
             servo.setTargetPercentage(gRecvCommData.rudder/10);
             if(!isMppt)
+            {
                 motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
+                last_motor_duty = gRecvCommData.throttle/10;
+            }
 
             sendData.Power     = (uint32_t)(emaVoltage * emaCurrent) *10.0f;
             sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;

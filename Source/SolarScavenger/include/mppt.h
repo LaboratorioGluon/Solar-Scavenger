@@ -11,7 +11,7 @@ public:
     uint32_t mpptPO(float v, float i);
     uint32_t mpptIC(float v, float i);
 
-    void resetMppt();
+    void resetMppt(uint32_t first_duty);
 
 private:
    
@@ -22,8 +22,10 @@ private:
     float prev_i;
     float prev_p;
     bool first_run;
+    
 
     uint32_t duty_cycle;
+    uint32_t first_duty_cycle;
 
 };
 
