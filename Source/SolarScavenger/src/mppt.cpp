@@ -2,7 +2,7 @@
 #include "mppt.h"
 #include <stdlib.h>
 
-#define MAX_DUTY_CYCLE 100
+#define MAX_DUTY_CYCLE 90
 #define MIN_DUTY_CYCLE  10
 
 #define MAX_VOLTAGE   21.6

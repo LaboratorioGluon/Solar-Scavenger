@@ -79,12 +79,12 @@ class Barco:
 
 
 # All in cm 
-sections = [9,8,7,6,0]
-h = 4
+sections = [10,7,0]
+h = 6
  
 b = Barco(100)
 b.setSections(sections, h)
-b.setMaterial(0.04) # [g/cm^3]
+b.setMaterial(0.015) # [g/cm^3]
 
 # Simulate different deeps
 profs = range((len(sections)-1)*h)

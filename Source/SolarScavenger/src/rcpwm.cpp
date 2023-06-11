@@ -6,7 +6,7 @@ static const char* TAG = "RcPWM";
 RcPwm::RcPwm(ledc_channel_t _channel,gpio_num_t _pinEsc, uint8_t _isInverted)
     :isInverted(_isInverted),isInitialized(false), pinEsc(_pinEsc), channelLedC(_channel)
 {
-
+    rateOfChange = 180; // 180º = 100 -> 1000 ms
 }
 
 void RcPwm::setMicrosecondsUp(uint32_t microseconds)
@@ -17,7 +17,7 @@ void RcPwm::setMicrosecondsUp(uint32_t microseconds)
 }
 
 /* Configure the PWM to 50Hz */
-void RcPwm::Init(uint32_t initMs)
+void RcPwm::Init(uint32_t initMs, uint32_t _minPwm , uint32_t _maxPwm)
 {
     esp_err_t error;
     ledc_timer_config_t ledc_timer;
@@ -47,10 +47,37 @@ void RcPwm::Init(uint32_t initMs)
     setMicrosecondsUp(initMs);
 
     isInitialized = true;
+
+    eqSlope = (_maxPwm - _minPwm)/100.0f;
+    eqOffset = _minPwm;
+
 }
 
 void RcPwm::setPowerPercentage(uint32_t power)
 {
-    uint32_t microseconds = power*20+500;
+    current = power;
+    uint32_t microseconds = eqSlope*power + eqOffset;
     setMicrosecondsUp(microseconds);
+}
+
+void RcPwm::setTargetPercentage(uint32_t atarget)
+{
+    target = atarget;
+}
+
+void RcPwm::update(uint32_t deltaTms)
+{   
+
+    uint32_t deltaMax = (rateOfChange*deltaTms)/1000.0f;
+    int32_t delta = (target-current);
+
+    if(abs(delta) > deltaMax){  
+        if(delta > 0)
+            setPowerPercentage( current + deltaMax);
+        else
+            setPowerPercentage( current - deltaMax);
+    }else{
+        setPowerPercentage( current + delta);
+    }
+
 }

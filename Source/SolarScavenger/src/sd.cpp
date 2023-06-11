@@ -64,17 +64,37 @@ void SdWritter::Init()
 
 }
 
-void SdWritter::printf(const char* format, ...)
+void SdWritter::printf(const char *format, ...)
 {
-   va_list args;
-    if (pFile == NULL) {
-        //ESP_LOGE(TAG, "Failed to open file for writing");
+    va_list args;
+    int ret;
+    uint8_t failed = 1;
+    if (pFile == NULL)
+    {
+        // ESP_LOGE(TAG, "Failed to open file for writing");
         return;
     }
 
     va_start(args, format);
-    vfprintf(pFile, format, args);
+    ret = vfprintf(pFile, format, args);
+
     va_end(args);
-    fflush(pFile);
-    fsync(fileno(pFile));
+    if ( ret > 0){
+        ret = fflush(pFile);
+        if (ret  == 0 )
+        {
+            ret = fsync(fileno(pFile));
+            if (ret == 0)
+            {
+                failed = 0;
+            }
+        }
+    }
+    
+
+    if (failed)
+    {
+        fclose(pFile);
+        pFile = fopen(MOUNT_POINT "/" LOG_FILENAME, "w");
+    }
 }

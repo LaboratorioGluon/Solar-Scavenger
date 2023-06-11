@@ -171,7 +171,7 @@ void Comms::activateReception()
 {
     esp_now_register_recv_cb(receptionCallback);
 
-    #ifndef EMISOR
+    #ifndef MANDO
     /**
      * We only want to measure the signal in the receiver side (as tested, signal strength is no symmetrical)
      * as is the more critical side.

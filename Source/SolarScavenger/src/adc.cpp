@@ -6,6 +6,7 @@
 
 static const char *TAG = "ADC";
 
+
 // TODO: Implementar calibracion
 static bool calibrateAdc()
 {

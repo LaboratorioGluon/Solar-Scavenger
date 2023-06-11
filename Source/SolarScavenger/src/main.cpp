@@ -17,10 +17,10 @@
 extern "C" void app_main(void);
 
 // Move to Config.h
-#define CALIBRATE_MOTOR 1
+#define CALIBRATE_MOTOR 0
 #define LED_RED_PIN    GPIO_NUM_27 
 #define LED_GREEN_PIN  GPIO_NUM_5
-#define CMD_MPPT_LIMIT 850
+#define CMD_MPPT_LIMIT 1000
 
 uint8_t isFreshStart;
 
@@ -131,7 +131,7 @@ void Init()
     #else
         motor.Init();
     #endif 
-    servo.Init();
+    servo.Init(1000, 500, 2500);
     LDR.Init();
     BatteryLevel.Init();
     motorVoltage.Init();
@@ -187,6 +187,8 @@ void app_main(void)
         ESP_LOGE(TAG, "Receiving values: Power: %lu, Batt: %lu, Signal: -%d Db", gRecvCommData.Power, gRecvCommData.BattLevel, gRecvCommData.SignalDb );
         servoPower.setPowerPercentage((uint32_t)gRecvCommData.Power/10.0f);
         servoBattery.setPowerPercentage(((uint32_t)gRecvCommData.BattLevel-3500.0f)/14.0f);
+        servoSignal.setPowerPercentage(((uint32_t)gRecvCommData.SignalDb*100.0f/120.0f));
+
         /*if(gComms.checkComms())
         {
             gpio_set_level(LED_GREEN_PIN, 0);
@@ -223,6 +225,8 @@ void app_main(void)
 
     while(true)
     {
+
+        // datosRecibidos = gRecvCommData;
 
         meanCurrent += Ina.readCurrentMa()/1000.0f;
         meanVoltage += (motorVoltage.ReadValue()/0.12f)/1000.0f;
@@ -263,25 +267,20 @@ void app_main(void)
         if(cycle % 20 == 0){
             
             ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
-            servo.setPowerPercentage(gRecvCommData.rudder/10);
+            servo.setTargetPercentage(gRecvCommData.rudder/10);
             if(!isMppt)
                 motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
 
-            sendData.Power     = (uint32_t)(emaVoltage * emaCurrent) *100.0f; //TODO - quitar el x10, puesto para pruebas
+            sendData.Power     = (uint32_t)(emaVoltage * emaCurrent) *10.0f;
             sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;
             sendData.SignalDb  = lastRssiDb;
+            ESP_LOGE(TAG, "Sending values: %lu, %lu, %d", sendData.Power, sendData.BattLevel, sendData.SignalDb);
             gComms.sendCommData(sendData);
+            ESP_LOGI(TAG, "[APP] Free memory: %lu bytes", esp_get_free_heap_size());
         }
 
-
-        // Check that comms are working, otherwise restart.
-        /*if(gComms.checkComms())
-        {
-            ESP_LOGE(TAG, "Restarting due to missing communications.");
-            sdCard.printf("[ERROR] Restarting ESP32, no messages received\n");
-            vTaskDelay(pdMS_TO_TICKS(400));
-            esp_restart();
-        }*/
+        // Update for target
+        servo.update(10);
 
         vTaskDelay(pdMS_TO_TICKS(10));
         cycle++;
