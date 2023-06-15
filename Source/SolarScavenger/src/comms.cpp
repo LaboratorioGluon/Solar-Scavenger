@@ -186,9 +186,9 @@ int Comms::checkComms()
 {
     if ( (esp_timer_get_time() - lastMessageMicros) > 3000000ULL )
     {
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 void Comms::testGetAddr()

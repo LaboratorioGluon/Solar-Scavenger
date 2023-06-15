@@ -114,9 +114,6 @@ void Init()
     servoSignal.setPowerPercentage(100);
     servoBattery.setPowerPercentage(100);
     vTaskDelay(pdMS_TO_TICKS(1000));
-    servoPower.setPowerPercentage(100);
-    servoSignal.setPowerPercentage(100);
-    servoBattery.setPowerPercentage(100);
 
     LDR.Init();
     // isMpptButton
@@ -205,20 +202,11 @@ void app_main(void)
         servoBattery.setPowerPercentage(((uint32_t)gRecvCommData.BattLevel-3500.0f)/14.0f);
         servoSignal.setPowerPercentage(((uint32_t)gRecvCommData.SignalDb*100.0f/120.0f));
 
-        /*if(gComms.checkComms())
-        {
-            gpio_set_level(LED_GREEN_PIN, 0);
-            gpio_set_level(LED_RED_PIN, 1);
-        }
-        else 
-        {
-            gpio_set_level(LED_RED_PIN, 0);
-            gpio_set_level(LED_GREEN_PIN, 1);
-        }*/
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 #else
+
     printf("Starting as BARCO\n");
     gComms.addReceiver(mac);
 
@@ -249,60 +237,68 @@ void app_main(void)
         meanVoltage += (motorVoltage.ReadValue()/0.12f)/1000.0f;
         nMeasures++;
 
-        if(cycle % 20 == 0)
+        if (gComms.checkComms())
         {
-            current = meanCurrent/nMeasures;
-            voltage = meanVoltage/nMeasures;
 
-            // EMA Filter
-            emaCurrent = current*alpha + emaCurrent*(1-alpha);
-            emaVoltage = voltage*alpha + emaVoltage*(1-alpha);
-
-            if (gRecvCommData.isModeMppt == 1)
+            if (cycle % 20 == 0)
             {
-                if(isMppt == 0)
+                current = meanCurrent / nMeasures;
+                voltage = meanVoltage / nMeasures;
+
+                // EMA Filter
+                emaCurrent = current * alpha + emaCurrent * (1 - alpha);
+                emaVoltage = voltage * alpha + emaVoltage * (1 - alpha);
+
+                if (gRecvCommData.isModeMppt == 1)
                 {
-                    mppt.resetMppt(last_motor_duty);
+                    if (isMppt == 0)
+                    {
+                        mppt.resetMppt(last_motor_duty);
+                    }
+                    isMppt = 1;
+                    mpptOuput = mppt.mpptIC(emaVoltage, emaCurrent);
+
+                    ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current, voltage, emaCurrent, emaVoltage, mpptOuput);
+                    sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current, voltage, emaCurrent, emaVoltage, mpptOuput);
+
+                    motor.setPowerPercentage(mpptOuput);
+                    last_motor_duty = mpptOuput;
                 }
-                isMppt = 1;
-                mpptOuput = mppt.mpptIC(emaVoltage, emaCurrent);
+                else
+                {
+                    isMppt = 0;
+                    ESP_LOGE(TAG, "[MANUAL]%lu", gRecvCommData.throttle);
+                    motor.setPowerPercentage(gRecvCommData.throttle / 10);
+                    last_motor_duty = gRecvCommData.throttle / 10;
+                }
 
-                ESP_LOGE(TAG, "[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
-                sdCard.printf("[MPTT]%.2f;%.2f;%.2f;%.2f;%lu", current,voltage,emaCurrent,emaVoltage,mpptOuput);
-
-                motor.setPowerPercentage(mpptOuput);
-                last_motor_duty = mpptOuput;
+                nMeasures = 0;
+                meanCurrent = 0;
+                meanVoltage = 0;
             }
-            else
+
+            if (cycle % 20 == 0)
             {
-                isMppt= 0;
-                ESP_LOGE(TAG, "[MANUAL]%lu", gRecvCommData.throttle);
-                motor.setPowerPercentage(gRecvCommData.throttle/10);
-                last_motor_duty = gRecvCommData.throttle/10;
-            }
-            
 
-            nMeasures   = 0;
-            meanCurrent = 0;
-            meanVoltage = 0;
+                ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
+                servo.setTargetPercentage(gRecvCommData.rudder / 10);
+                if(!isMppt){
+                    servo.setPowerPercentage(gRecvCommData.rudder / 10);
+                    last_motor_duty = gRecvCommData.throttle / 10;
+                }
+                sendData.Power = (uint32_t)(emaVoltage * emaCurrent) * 10.0f;
+                sendData.BattLevel = (uint32_t)BatteryLevel.ReadValue() * 2.0f;
+                sendData.SignalDb = lastRssiDb;
+                ESP_LOGE(TAG, "Sending values: %lu, %lu, %d", sendData.Power, sendData.BattLevel, sendData.SignalDb);
+                gComms.sendCommData(sendData);
+                ESP_LOGI(TAG, "[APP] Free memory: %lu bytes", esp_get_free_heap_size());
+            }
         }
-
-        if(cycle % 20 == 0){
-            
-            ESP_LOGE(TAG, "Receiving values: Rudder: %lu, Throt: %lu", gRecvCommData.rudder, gRecvCommData.throttle);
-            servo.setTargetPercentage(gRecvCommData.rudder/10);
-            if(!isMppt)
-            {
-                motor.setPowerPercentage(gRecvCommData.throttle/10.0f);
-                last_motor_duty = gRecvCommData.throttle/10;
-            }
-
-            sendData.Power     = (uint32_t)(emaVoltage * emaCurrent) *10.0f;
-            sendData.BattLevel = (uint32_t) BatteryLevel.ReadValue() * 2.0f;
-            sendData.SignalDb  = lastRssiDb;
-            ESP_LOGE(TAG, "Sending values: %lu, %lu, %d", sendData.Power, sendData.BattLevel, sendData.SignalDb);
-            gComms.sendCommData(sendData);
-            ESP_LOGI(TAG, "[APP] Free memory: %lu bytes", esp_get_free_heap_size());
+        else
+        {
+            motor.setPowerPercentage(0);
+            isMppt = 0;
+            last_motor_duty = 0;
         }
 
         // Update for target
