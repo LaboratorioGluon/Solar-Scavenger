@@ -1,5 +1,11 @@
 # Solar Scavenger
 
+Os presento el barco **Solar Scavenger** participante de la VI Regata Solar en Baiona!
+
+El resultado: Primer premio en diseño y tercero en regata!
+
+Todo está desarrollado en directo, desde la PCB, diseño 3D, software y montaje! (Link abajo)
+
 ## Materiales usados:
 
 | Nombre | Descripción |
@@ -10,7 +16,5 @@
 
 ## PCB
 
-![PCB_Render](./Images/PCB_Render_v1.1.jpg)
-
-![PCB_Editor](./Images/PCB_Editor_v1.1.jpg)
+<img src="./Images/PCB_Render_v1.1.jpg" width="400"><img src="./Images/PCB_Editor_v1.1.jpg" width="400">
 
